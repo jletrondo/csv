@@ -1,0 +1,41 @@
+{
+    "name": "jletrondo/csv",
+    "description": "A robust PHP library designed for efficient CSV data processing, validation, and generation, offering flexible features for handling various CSV formats and ensuring data integrity.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "jesrel",
+            "email": "jletrondo@geniihut.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Jletrondo\\Csv\\": "src/Csv/"
+        },
+        "files": [
+            "src/Helpers/custom.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+        "Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^7.4 || ^8.0"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.8"
+    },
+    "config": {
+        "allow-plugins": {
+        "pestphp/pest-plugin": true
+        }
+    },
+    "scripts": {
+        "test": "@php vendor/bin/pest",
+        "test-file": "@php vendor/bin/pest"
+    }
+
+}
