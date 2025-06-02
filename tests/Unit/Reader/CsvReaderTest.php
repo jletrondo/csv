@@ -24,3 +24,16 @@ test('returns empty processed rows for empty file', function () {
     unlink($file);
 });
 
+test('returns empty processed rows for file with only header', function () {
+    $csv = "name,email\n";
+    $file = tempnam(sys_get_temp_dir(), 'csv_');
+    file_put_contents($file, $csv);
+
+    $reader = new Reader(['columns' => $this->columns]);
+    $result = $reader->read($file);
+
+    expect($result['status'])->toBeTrue();
+    expect($result['rows_processed'])->toBeArray();
+    expect($result['rows_processed'])->toBeEmpty();
+    unlink($file);
+});
