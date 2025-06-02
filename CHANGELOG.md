@@ -2,7 +2,7 @@
 
 ## [1.5.5] - 2025-06-01
 ### Added
-- Added exception handling in `CsvReader::read()` to capture and return error messages for debugging purposes. This enhancement is documented in the [README](README.md) file, where users can find detailed error messages when exceptions occur during CSV processing, improving the ability to diagnose issues.
+- Added exception handling in `Reader::read()` to capture and return error messages for debugging purposes. This enhancement is documented in the [README](README.md) file, where users can find detailed error messages when exceptions occur during CSV processing, improving the ability to diagnose issues.
 - Introduced default values for the `callBackResult` in callback processing to ensure consistent behavior when no keys are returned. The default structure is as follows:
 ```php
   $callBackResult = [
@@ -31,11 +31,11 @@
 
 ## [1.5.3] - 2025-05-21
 ### Changed
-- Enhanced header processing in `CsvReader::read()` to automatically remove extra spaces between words in headers. This ensures that headers are normalized, improving data consistency and reducing potential errors during processing.
+- Enhanced header processing in `Reader::read()` to automatically remove extra spaces between words in headers. This ensures that headers are normalized, improving data consistency and reducing potential errors during processing.
 
 ## [1.5.2] - 2025-05-19
 ### Added
-- Added support for CSV files without headers in `CsvReader::read()`. The method can now process files that do not contain a header row, allowing for more flexible input formats. When no headers are present, the columns will be indexed numerically (0, 1, 2, ...).
+- Added support for CSV files without headers in `Reader::read()`. The method can now process files that do not contain a header row, allowing for more flexible input formats. When no headers are present, the columns will be indexed numerically (0, 1, 2, ...).
 - Empty rows are now automatically skipped during processing, but their occurrence is recorded for reference.
 - Added the `toJSON()` method to output results in JSON format, providing a structured representation of the processed data.
 
@@ -56,7 +56,7 @@
 
 ## [1.5.0] - 2025-05-17
 ### Added
-- Added support for file streams and uploaded files in `CsvReader::read()`. The method now accepts both file paths and file streams as input.
+- Added support for file streams and uploaded files in `Reader::read()`. The method now accepts both file paths and file streams as input.
 - Added validation for stream resource types and proper stream handling.
 
 ### Fixed
@@ -68,7 +68,7 @@
 
 ## [1.4.0] - 2025-05-16
 ### Added
-- Validation in `CsvReader::read()` to detect and flag rows with an incorrect number of columns (extra or missing columns compared to the header). Such rows are now reported as errors and skipped from further processing. 
+- Validation in `Reader::read()` to detect and flag rows with an incorrect number of columns (extra or missing columns compared to the header). Such rows are now reported as errors and skipped from further processing. 
 
 ### Fixed
 - Added validation to ensure all columns defined in the configuration are present in the CSV header. If any required columns are missing, an error is now reported and processing is halted.
@@ -80,16 +80,16 @@
   - `$directory_path`
   - `$file_name`
 - Renamed the `set_callback` method to `setCallback` to adhere to the project's camelCase naming convention for functions. (A breaking change)
-- Refactored `CsvReader::read()` by removing the redundant second parameter `$callback`. Callback functionality should now be set exclusively via the `setCallback()` method prior to reading.
+- Refactored `Reader::read()` by removing the redundant second parameter `$callback`. Callback functionality should now be set exclusively via the `setCallback()` method prior to reading.
 
 ## [1.3.2] - 2025-05-15
 ### Fixed
 - Improved date validation: columns with `type: date` now only accept the following formats: `m/d/Y`, `m-d-Y`, `Y-m-d`, and `Y/m/d`. Invalid date formats are now correctly detected and reported.  
-  _(See: `CsvReader.php`, `ValidationTest.php`)_
+  _(See: `Reader.php`, `ValidationTest.php`)_
 
 ### Added
 - Added support for headers containing parenthesis, such as labels or format hints (e.g., `birthday(M/D/Y)`). Headers with parenthesis are now correctly recognized and mapped to their respective columns.
-  _(See: `CsvReader.php`, `ValidationTest.php`)_
+  _(See: `Reader.php`, `ValidationTest.php`)_
 - Added strict date validation helper function which uses regex.
 
 

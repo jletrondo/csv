@@ -1,39 +1,39 @@
-# CsvReader Library
+# Reader Library
 
 ## Overview
-The CsvReader library is a PHP class designed to facilitate the reading and processing of CSV files with headers at the top row. It provides various features for handling CSV data, including validation, error handling, and customizable processing through callback functions.
+The Reader library is a PHP class designed to facilitate the reading and processing of CSV files with headers at the top row. It provides various features for handling CSV data, including validation, error handling, and customizable processing through callback functions.
 
 
 ## Motivation
 
-I created the CsvReader library to simplify and standardize the process of reading and validating CSV files in my PHP projects. After encountering repetitive issues with inconsistent CSV formats and error handling, I wanted a reusable solution that could be easily customized and extended for different use cases.
+I created the Reader library to simplify and standardize the process of reading and validating CSV files in my PHP projects. After encountering repetitive issues with inconsistent CSV formats and error handling, I wanted a reusable solution that could be easily customized and extended for different use cases.
 
 ## Namespace
 ```php
-namespace Jletrondo\CsvReader;
+namespace Jletrondo\Csv;
 ```
 
 ## Installation
-To use the CsvReader library, include the file in your project and ensure that you have the necessary dependencies installed. You can install it via Composer:
+To use the Reader library, include the file in your project and ensure that you have the necessary dependencies installed. You can install it via Composer:
 
 ```bash
-composer require jletrondo/csv-reader
+composer require jletrondo/csv
 ```
 
 ## Usage
 ### Creating an Instance
-To use the CsvReader library, include the following use statement at the top of your PHP file:
+To use the Reader library, include the following use statement at the top of your PHP file:
 ```php
-use Jletrondo\CsvReader\CsvReader;
+use Jletrondo\Csv\Reader;
 ```
-You can create an instance of the CsvReader class by passing optional parameters to the constructor.
+You can create an instance of the Reader class by passing optional parameters to the constructor.
 
 ```php
-$csvReader = new CsvReader($params);
+$reader = new Reader($params);
 ```
 
 ### Parameters
-- **$params**: An associative array of optional parameters to initialize the CsvReader. Common parameters include:
+- **$params**: An associative array of optional parameters to initialize the Reader. Common parameters include:
   - `delimiter`: Character used to separate values in the CSV file (default: `,`).
   - `enclosure`: Character used to enclose values in the CSV file (default: `"`).
   - `escape`: Character used to escape special characters (default: `\`).
@@ -45,7 +45,7 @@ $csvReader = new CsvReader($params);
 To read a CSV file, use the `read` method. You can also provide a callback function to process each row.
 
 ```php
-$results = $csvReader->read('path/to/your/file.csv');
+$results = $reader->read('path/to/your/file.csv');
 ```
 
 ### Callback Function
@@ -63,7 +63,7 @@ The callback can return one of the following:
   - `'status' => true` and `'row' => $modifiedRow` — The row is valid, and you want to modify the row before further processing (e.g., change values, normalize data).
   - `'status' => false` and `'skip' => true` — The row should be skipped entirely and not included in the processed results.
 
-**Important:** You must set the callback before calling `CsvReader::read()`. Use the following method to register your callback:
+**Important:** You must set the callback before calling `Reader::read()`. Use the following method to register your callback:
 
 #### Using the Callback for custom validations
 ```php
@@ -108,13 +108,13 @@ Each column definition in the `columns` parameter supports the following options
 - **allowed_values** (optional): An array of allowed values for the column. If set, the value in the CSV must match one of the values in this array. Example: `'allowed_values' => ['active', 'inactive']`.
 
 
-Example column definition:
+## Example uage with column definitions:
 
 ### Example
 ```php
 require 'vendor/autoload.php';
 
-use Jletrondo\CsvReader\CsvReader;
+use Jletrondo\Csv\Reader;
 
 class CsvProcessor
 {
@@ -150,7 +150,7 @@ class CsvProcessor
             ],
         ];
 
-        $this->reader = new CsvReader([
+        $this->reader = new Reader([
             'columns' => $this->columns
         ]);
 
@@ -192,7 +192,7 @@ $csvProcessor->process();
 
 ## Progress Callback Feature (Added in v1.2)
 
-The `CsvReader` class now supports a **progress callback** feature, allowing you to receive updates on the progress of CSV file processing. This is especially useful for large files, as you can provide feedback to users (e.g., update a progress bar or log progress).
+The `Reader` class now supports a **progress callback** feature, allowing you to receive updates on the progress of CSV file processing. This is especially useful for large files, as you can provide feedback to users (e.g., update a progress bar or log progress).
 
 ### How It Works
 
@@ -204,8 +204,8 @@ The `CsvReader` class now supports a **progress callback** feature, allowing you
 
 ### Example Usage
 ```php
-    use Jletrondo\CsvReader\CsvReader;
-    $reader = new CsvReader([
+    use Jletrondo\Csv\Reader;
+    $reader = new Reader([
         'columns' => $columns, // your column definitions
     ]);
     // Set a progress callback
@@ -231,17 +231,17 @@ The `CsvReader` class now supports a **progress callback** feature, allowing you
 ---
 
 **See also:**  
-- [`setProgressCallback()` method in CsvReader.php](src/CsvReader.php)
-- [Example usage in tests/CsvReaderUsage.php](tests/CsvReaderUsage.php)
+- [`setProgressCallback()` method in Reader.php](src/Reader.php)
+- [Example usage in tests/ReaderUsage.php](tests/ReaderUsage.php)
 
 ### Exception Handling Example (Added in v1.5.5)
 
-The `CsvReader` library allows for custom validation and exception handling during the reading process. To ensure robust error handling, all custom validations must be wrapped inside a try-catch block. Below is an example demonstrating how to implement exception handling in your CSV processing. 
+The `Reader` library allows for custom validation and exception handling during the reading process. To ensure robust error handling, all custom validations must be wrapped inside a try-catch block. Below is an example demonstrating how to implement exception handling in your CSV processing. 
 
 ```php
 require 'vendor/autoload.php';
 
-use Jletrondo\CsvReader\CsvReader;
+use Jletrondo\Csv\Reader;
 
 class CsvProcessor
 {
@@ -255,7 +255,7 @@ class CsvProcessor
             ['column_name' => 'email', 'name' => 'email', 'type' => 'string', 'validate' => 'required|unique'],
         ];
 
-        $this->reader = new CsvReader(['columns' => $this->columns]);
+        $this->reader = new Reader(['columns' => $this->columns]);
     }
 
     public function process()
@@ -303,7 +303,7 @@ $csvProcessor->process();
 ```
 
 ### Explanation
-In this example, the `CsvProcessor` class initializes the `CsvReader` with column definitions and sets a callback that simulates an exception being thrown. The `process` method attempts to read a CSV file and handles any exceptions that occur, providing feedback on the error. This allows for better debugging and user feedback during CSV processing.
+In this example, the `CsvProcessor` class initializes the `Reader` with column definitions and sets a callback that simulates an exception being thrown. The `process` method attempts to read a CSV file and handles any exceptions that occur, providing feedback on the error. This allows for better debugging and user feedback during CSV processing.
 
 ## Testing
 To run the tests, use the following command:
@@ -315,7 +315,7 @@ This will run all test files
 
 To run a specific test file just use the following command:
 ```bash
-composer test -- tests/csvreader/exceptiontest.php
+composer test -- tests/Reader/exceptiontest.php
 ```
 
 
@@ -324,7 +324,7 @@ The library tracks errors encountered during the reading process. If errors occu
 
 ## Methods
 ### `initialize(array $params)`
-Initializes the CsvReader with given parameters.
+Initializes the Reader with given parameters.
 
 ### `setDelimiter(string $delimiter)`
 Sets the delimiter for CSV.
@@ -354,7 +354,7 @@ Sets the error count threshold.
 Stores rows with errors into a CSV file.
 
 ## Conclusion
-The CsvReader library provides a robust solution for reading and processing CSV files in PHP. With its validation features and customizable processing, it is suitable for various applications that require CSV data handling.
+The Reader library provides a robust solution for reading and processing CSV files in PHP. With its validation features and customizable processing, it is suitable for various applications that require CSV data handling.
 
 ## License
 This library is licensed under the MIT License.
