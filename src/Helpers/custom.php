@@ -113,7 +113,6 @@ function reformat_date_to_mdy($date) {
     foreach ($formats as $format) {
         $dt = DateTime::createFromFormat($format, $date);
         $errors = DateTime::getLastErrors();
-        print_r($errors);
         if ($dt && $errors['warning_count'] === 0 && $errors['error_count'] === 0) {
             return $dt->format('m/d/Y');
         }

@@ -57,15 +57,15 @@ test('fails if required column is missing in csv', function () {
     $columns = [
         [
             'column_name' => 'id',
-            'name' => 'id',
-            'type' => 'integer',
-            'validate' => 'required'
+            'name'        => 'id',
+            'type'        => 'integer',
+            'validate'    => 'required'
         ],
         [
             'column_name' => 'email',
-            'name' => 'email',
-            'type' => 'string',
-            'validate' => 'required'
+            'name'        => 'email',
+            'type'        => 'string',
+            'validate'    => 'required'
         ],
     ];
 
@@ -81,7 +81,7 @@ test('fails if required column is missing in csv', function () {
     $result = $reader->read($file);
 
     expect($result['status'])->toBeFalse();
-    expect($result['error'])->toContain('missing the following columns');
+    expect($result['error'])->toContain('have missing columns');
     unlink($file);
 });
 

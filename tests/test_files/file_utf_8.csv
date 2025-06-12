@@ -1,0 +1,12 @@
+﻿company,fullname,birth date,active,department,position,salary,employee_id,manager,hire_date,phone,email,address,city,state,zip
+NWJS,John Do?,01/15/1990,NO,Engineering,Developer,75000,1001,Jane Smith,03/12/2015,555-1234,john.doe@nwjs.com,123 Main St,Seattle,WA,98101
+NWJS,Jañe Smith,07/23/1985,YES,Engineering,Lead Developer,90000,1002,Michael Johnson,06/18/2012,555-2345,jane.smith@nwjs.com,456 Oak Ave,Seattle,WA,98102
+NWJS,Michael Johnson,10/03/1978,NO,Engineering,Manager,110000,1003,,01/05/2010,555-3456,michael.johnson@nwjs.com,789 Pine Rd,Seattle,WA,98103
+APPLE,Emily Davis,05/11/1992,YES,Design,Designer,80000,2001,Laura Scott,09/22/2016,555-4567,emily.davis@apple.com,321 Apple St,Cupertino,CA,95014
+GOOGLE,Chris Evans,12/22/1988,NO,Marketing,Analyst,70000,3001,Daniel Lewis,11/30/2017,555-5678,chris.evans@google.com,654 Google Dr,Mountain View,CA,94043
+MICROSOFT,Ânna Lee,03/14/1991,YES,Product,Product Manager,95000,4001,Susan Hall,04/10/2014,555-6789,anna.lee@microsoft.com,987 Microsoft Way,Redmond,WA,98052
+AMAZON,Robert Brown,09/30/1982,NO,Logistics,Coordinator,72000,5001,Matthew Young,07/19/2013,555-7890,robert.brown@amazon.com,246 Amazon Blvd,Seattle,WA,98109
+TESLA,Jessica White,06/18/1995,YES,Engineering,Engineer,85000,6001,Patricia King,02/25/2018,555-8901,jessica.white@tesla.com,135 Tesla Rd,Fremont,CA,94538
+FACEBOOK,David Clark,11/05/1987,NO,Support,Support Rep,65000,7001,James Wright,05/14/2015,555-9012,david.clark@facebook.com,864 FB Ln,Menlo Park,CA,94025
+APPLE,Laura Scott,04/27/1993,NO,Design,Senior Designer,95000,2002,Barbara Green,08/03/2017,555-0123,laura.scott@apple.com,753 Apple St,Cupertino,CA,95014
+GOOGLE,Daniel Lewis,08/19/1980,YES,Marketing,Manager,105000,3002,Steven Adams,10/21/2011,555-1235,daniel.lewis@google.com,159 Google Dr,Mountain View,CA,94043

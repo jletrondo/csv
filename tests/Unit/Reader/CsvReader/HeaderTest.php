@@ -24,7 +24,7 @@ test('fails if extra column is present', function () {
     $result = $reader->read($file);
 
     expect($result['status'])->toBeFalse();
-    expect($result['error'])->toContain('contains columns that are not defined');
+    expect($result['error'])->toContain('have extra headers');
     unlink($file);
 });
 
@@ -41,7 +41,7 @@ test('fails if duplicate headers are present', function () {
     $result = $reader->read($file);
 
     expect($result['status'])->toBeFalse();
-    expect($result['error'])->toContain('Duplicate headers found');
+    expect($result['error'])->toContain('have duplicate headers');
     unlink($file);
 });
 
@@ -58,7 +58,7 @@ test('fails when CSV contains extra headers not defined in columns', function ()
     $result = $reader->read($file);
 
     expect($result['status'])->toBeFalse();
-    expect($result['error'])->toContain('contains columns that are not defined');
+    expect($result['error'])->toContain('have extra headers');
     unlink($file);
 });
 

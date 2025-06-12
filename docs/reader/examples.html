@@ -1,0 +1,245 @@
+<style>
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #21334e;
+    color: #222;
+    margin: 0;
+    padding: 0;
+  }
+  .examples-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 2rem 2.5rem;
+  }
+  h2, h3 {
+    color: #1a365d;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+  h2 {
+    border-bottom: 2px solid #e0e7ef;
+    padding-bottom: 0.3em;
+    margin-bottom: 1.5em;
+  }
+  pre {
+    background: #23272e;
+    border: 1px solid #e0e7ef;
+    border-radius: 5px;
+    padding: 1em 1.2em;
+    overflow-x: auto;
+    margin-bottom: 1.5em;
+    font-size: 1em;
+  }
+  code {
+    font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+    color: #f8f8f2;
+    background: none;
+    font-size: 1em;
+  }
+  @media (max-width: 700px) {
+    .examples-container {
+      padding: 1rem 0.5rem;
+    }
+    h2, h3 {
+      margin-left: 0.2em;
+    }
+  }
+</style>
+<div class="examples-container">
+  <h2>CSV Reader Usage Examples</h2>
+
+  <h3>Basic Usage</h3>
+  <pre><code class="language-php">
+// Require Composer autoload if needed
+require 'vendor/autoload.php';
+
+use Jletrondo\Csv\Reader;
+
+// Define columns
+$columns = [
+    ['column_name' => 'name', 'name' => 'name', 'type' => 'string', 'validate' => 'required'],
+    ['column_name' => 'email', 'name' => 'email', 'type' => 'string', 'validate' => 'required|unique'],
+];
+
+// Create a new Reader instance
+$reader = new Reader(['columns' => $columns]);
+
+// Read a CSV file
+$result = $reader->read('path/to/your/file.csv');
+
+// Check results
+if ($result['status']) {
+    foreach ($result['rows_processed'] as $row) {
+        // Process each row
+        print_r($row);
+    }
+} else {
+    echo "Error: " . $result['error'];
+}
+</code></pre>
+
+  <h3>Custom Columns and Validation</h3>
+  <pre><code class="language-php">
+$columns = [
+    ['name' => 'company', 'column_name' => 'company', 'type' => 'string', 'validate' => 'required|max_length[20]'],
+    ['name' => 'employee_id', 'column_name' => 'employee id', 'type' => 'string', 'validate' => 'unique|required|max_length[20]'],
+    ['name' => 'birth_date', 'column_name' => 'birth date', 'type' => 'date', 'validate' => 'required|max_length[15]'],
+    // ... more columns
+];
+
+$reader = new Reader(['columns' => $columns]);
+$result = $reader->read('employees.csv');
+</code></pre>
+
+  <h3>Handling Uploaded Files (<code>$_FILES</code>)</h3>
+  <pre><code class="language-php">
+$reader = new Reader(['columns' => $columns]);
+$result = $reader->read($_FILES['csv_file']);
+</code></pre>
+
+  <h3>Reading from a File Stream</h3>
+  <pre><code class="language-php">
+$stream = fopen('path/to/file.csv', 'r');
+$reader = new Reader(['columns' => $columns]);
+$result = $reader->read($stream);
+fclose($stream);
+</code></pre>
+
+  <h3>Customizing Error Output Directory and File Name</h3>
+  <pre><code class="language-php">
+$reader = new Reader(['columns' => $columns]);
+$reader->setDirectoryPath('custom_errors/');
+$reader->setFileName('errors.csv');
+$reader->setIsDownloadable(true);
+$result = $reader->read('file.csv');
+</code></pre>
+
+  <h3>Callbacks: Rejecting, Modifying, or Skipping Rows</h3>
+  <pre><code class="language-php">
+// Reject a row based on custom logic
+$callback = new class {
+    public function rejectJane($row, $rowIndex) {
+        if ($row['name'] === 'Jane') {
+            return ['status' => false, 'column_errors' => ['Jane is not allowed']];
+        }
+    }
+};
+$reader->setCallback('rejectJane', $callback);
+
+// Modify a row before processing
+$callback = new class {
+    public function uppercaseName($row, $rowIndex) {
+        $row['name'] = strtoupper($row['name']);
+        $row['email'] = strtolower($row['email']);
+        return ['status' => true, 'row' => $row];
+    }
+};
+$reader->setCallback('uppercaseName', $callback);
+
+// Skip a row
+$callback = new class {
+    public function skipRow($row, $rowIndex) {
+        if ($row['name'] === 'SkipMe') {
+            return ['status' => false, 'skip' => true];
+        }
+        return ['status' => true];
+    }
+};
+$reader->setCallback('skipRow', $callback);
+</code></pre>
+
+  <h3>Custom Exception Handling in Validation</h3>
+  <pre><code class="language-php">
+$callback = new class {
+    public function exceptionValidation($row, $rowIndex) {
+        $errors = [];
+        $exceptionMsg = "";
+        try {
+            if (!filter_var($row['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new Exception('Invalid email.');
+            }
+        } catch (Exception $e) {
+            $errors[] = $e->getMessage();
+            $exceptionMsg = $e->getMessage();
+        }
+        return [
+            'status' => empty($errors),
+            'column_errors' => $errors,
+            'exception' => $exceptionMsg
+        ];
+    }
+};
+$reader->setCallback('exceptionValidation', $callback);
+$result = $reader->read('file.csv');
+</code></pre>
+
+  <h3>Handling CSVs Without Headers</h3>
+  <pre><code class="language-php">
+$reader = new Reader(['has_header' => false]);
+$result = $reader->read('file_without_header.csv');
+foreach ($result['rows_processed'] as $row) {
+    // $row['data'] contains the row values
+    print_r($row['data']);
+}
+</code></pre>
+
+  <h3>Custom Header Row Index and Start Row Index</h3>
+  <pre><code class="language-php">
+$columns = [
+    ['column_name' => 'name', 'name' => 'name', 'type' => 'string', 'validate' => 'required'],
+    ['column_name' => 'birthdate', 'name' => 'birthdate', 'type' => 'date', 'validate' => 'required'],
+];
+$reader = new Reader(['columns' => $columns]);
+$reader->setHeaderRowIndex(2); // Header is on row 2
+$reader->setStartRowIndex(8);  // Data starts on row 8
+$result = $reader->read('file.csv');
+</code></pre>
+
+  <h3>Validating Date Formats</h3>
+  <pre><code class="language-php">
+$columns = [
+    ['column_name' => 'name', 'name' => 'name', 'type' => 'string', 'validate' => 'required'],
+    ['column_name' => 'birthdate', 'name' => 'birthdate', 'type' => 'date', 'validate' => 'required'],
+];
+$reader = new Reader(['columns' => $columns]);
+$result = $reader->read('file_with_dates.csv');
+if (!$result['status']) {
+    foreach ($result['errors'] as $error) {
+        echo $error['message'] . "\n";
+    }
+}
+</code></pre>
+
+  <h3>Handling Extra or Duplicate Headers</h3>
+  <pre><code class="language-php">
+$reader = new Reader(['columns' => $columns]);
+$result = $reader->read('file_with_extra_or_duplicate_headers.csv');
+if (!$result['status']) {
+    echo $result['error'];
+}
+</code></pre>
+
+  <h3>Processing CSVs with Parenthesis in Headers</h3>
+  <pre><code class="language-php">
+$columns = [
+    ['column_name' => 'name', 'name' => 'name', 'type' => 'string', 'validate' => 'required'],
+    ['column_name' => 'birthday', 'name' => 'birthday', 'type' => 'date', 'validate' => 'required'],
+];
+$reader = new Reader(['columns' => $columns]);
+$result = $reader->read('file_with_parenthesis_headers.csv');
+</code></pre>
+
+  <h3>Trimming and Normalizing Header Names</h3>
+  <pre><code class="language-php">
+$columns = [
+    ['column_name' => 'name', 'name' => 'name', 'type' => 'string', 'validate' => 'required'],
+    ['column_name' => 'email', 'name' => 'email', 'type' => 'string', 'validate' => 'required'],
+    ['column_name' => 'referred by', 'name' => 'referred_by', 'type' => 'string'],
+];
+$reader = new Reader(['columns' => $columns]);
+$result = $reader->read('file_with_spaces_in_headers.csv');
+</code></pre>
+</div>

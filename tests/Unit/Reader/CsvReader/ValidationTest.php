@@ -23,7 +23,7 @@ test('fails if required column is missing', function () {
     $result = $reader->read($file);
 
     expect($result['status'])->toBeFalse();
-    expect($result['error'])->toContain('missing the following columns');
+    expect($result['error'])->toContain('have missing columns');
     unlink($file);
 });
 
@@ -541,7 +541,7 @@ test('fails if date format is not m/d/Y or Y/m/d ', function () {
 test('fails if csv has extra columns', function () {
     $csv = <<<CSV
         name,birthdate
-        John,02/33/2000,extra_data
+        John,02/33/2000,
         Jane,2001-01-31
         Dave,07/26/1995
         CSV;
@@ -613,10 +613,9 @@ test('fails if csv has defined but missing columns', function () {
     $reader = new Reader(['columns' => $columns]);
     $result = $reader->read($file);
     expect($result['status'])->toBeFalse();
-    expect($result['error'])->toContain('The uploaded file is missing the following columns');
+    expect($result['error'])->toContain('have missing columns');
     expect($result['total_error_rows'])->toBe(0);
     expect($result['error_count'])->toBe(0);
     unlink($file);
 });
-
 

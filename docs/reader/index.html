@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reader Library Documentation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --primary: #2d5fa4;
+      --secondary: #21334e;
+      --accent: #e2e8f0;
+      --code-bg: #23272e; /* Darker background for code */
+      --code-fg: #f8f8f2; /* Light text for code */
+      --border: #d1d5db;
+      --error: #e53e3e;
+      --success: #38a169;
+      --font: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    }
+    body {
+      font-family: var(--font);
+      background: var(--secondary);
+      color: #222;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: var(--primary);
+      color: #ccbfbf;
+      padding: 2rem 1rem 1rem 1rem;
+      text-align: center;
+      border-bottom: 4px solid var(--accent);
+    }
+    header h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 2.5rem;
+      letter-spacing: 1px;
+    }
+    header p {
+      margin: 0;
+      font-size: 1.2rem;
+      opacity: 0.95;
+    }
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+      padding: 2rem 2.5rem;
+    }
+    h2, h3, h4 {
+      color: var(--primary);
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    h2 {
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 0.3rem;
+    }
+    pre, code {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 4px;
+      font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+      font-size: 1em;
+    }
+    pre {
+      padding: 1em;
+      overflow-x: auto;
+      margin: 1em 0;
+      border: 1px solid var(--accent);
+    }
+    code {
+      padding: 0.2em 0.4em;
+    }
+    ul, ol {
+      margin-left: 2em;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+      background: var(--code-bg);
+      color: var(--code-fg);
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5em 0.8em;
+      text-align: left;
+    }
+    th {
+      background: var(--accent);
+      color: #222;
+    }
+    .note {
+      background: #e6f7ff;
+      border-left: 4px solid var(--primary);
+      padding: 0.8em 1em;
+      margin: 1em 0;
+      border-radius: 4px;
+      color: #1a365d;
+    }
+    .error {
+      color: var(--error);
+      font-weight: bold;
+    }
+    .success {
+      color: var(--success);
+      font-weight: bold;
+    }
+    @media (max-width: 600px) {
+      main {
+        padding: 1rem 0.5rem;
+      }
+      header {
+        padding: 1.2rem 0.5rem 0.7rem 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CSV Reader</h1>
+    <p>A robust PHP library for reading, validating, and processing CSV files with header support, error handling, and extensible validation.</p>
+  </header>
+  <main>
+    <h2>Overview</h2>
+    <p>
+      The <strong>Reader</strong> library is a PHP class designed to facilitate the reading and processing of CSV files with headers at the top row. It provides features for handling CSV data, including validation, error handling, and customizable processing through callback functions.
+    </p>
+
+    <h2>Installation</h2>
+    <pre><code>composer require jletrondo/csv</code></pre>
+
+    <h2>Namespace</h2>
+    <pre><code>namespace Jletrondo\Csv;</code></pre>
+
+    <h2>Usage</h2>
+    <h3>Creating an Instance</h3>
+    <pre><code>use Jletrondo\Csv\Reader;
+
+$reader = new Reader($params);</code></pre>
+    <ul>
+      <li><strong>$params</strong>: Associative array of optional parameters to initialize the Reader. Common parameters include:
+        <ul>
+          <li><code>delimiter</code>: Character used to separate values (default: <code>,</code>).</li>
+          <li><code>enclosure</code>: Character used to enclose values (default: <code>"</code>).</li>
+          <li><code>escape</code>: Character used to escape special characters (default: <code>\</code>).</li>
+          <li><code>has_header</code>: Whether the CSV file has a header row (default: <code>true</code>).</li>
+          <li><code>columns</code>: Array of required column definitions for validation.</li>
+          <li><code>error_threshold</code>: Max errors before stopping (default: <code>1000</code>).</li>
+        </ul>
+      </li>
+    </ul>
+
+    <h3>Reading a CSV File</h3>
+    <pre><code>$results = $reader->read('path/to/your/file.csv');</code></pre>
+
+    <h2>Column Definitions</h2>
+    <p>
+      Each column definition supports the following options:
+    </p>
+    <table>
+      <tr>
+        <th>Option</th>
+        <th>Required</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td><code>name</code></td>
+        <td>Yes</td>
+        <td>Key name for the value in the resulting associative array.</td>
+      </tr>
+      <tr>
+        <td><code>column_name</code></td>
+        <td>Yes</td>
+        <td>Header name as it appears in the CSV file.</td>
+      </tr>
+      <tr>
+        <td><code>type</code></td>
+        <td>No</td>
+        <td>Expected data type (<code>string</code>, <code>integer</code>, <code>float</code>, <code>boolean</code>, <code>date</code>).</td>
+      </tr>
+      <tr>
+        <td><code>validate</code></td>
+        <td>No</td>
+        <td>Pipe-separated validation rules (see below).</td>
+      </tr>
+      <tr>
+        <td><code>allowed_values</code></td>
+        <td>No</td>
+        <td>Array of allowed values for the column.</td>
+      </tr>
+    </table>
+
+    <h3>Supported Validation Rules</h3>
+    <ul>
+      <li><code>required</code>: Value must be present.</li>
+      <li><code>lowercase</code>: Converts value to lowercase.</li>
+      <li><code>uppercase</code>: Converts value to uppercase.</li>
+      <li><code>strip_tags</code>: Removes HTML and PHP tags.</li>
+      <li><code>unique</code>: Value must be unique across the dataset.</li>
+      <li><code>min_length[n]</code>: Minimum number of characters.</li>
+      <li><code>max_length[n]</code>: Maximum number of characters.</li>
+      <li><code>htmlentities</code>: Converts special characters to HTML entities.</li>
+      <li><code>strip_quotes</code>: Removes quotes from the value.</li>
+      <li><code>urlencode</code>: Encodes the value for use in a URL.</li>
+    </ul>
+
+    <h3>Example Column Definitions</h3>
+    <pre><code>
+$columns = [
+    [
+        'name'        => 'company', 
+        'column_name' => 'company', 
+        'type'        => 'string', 
+        'validate'    => 'uppercase|max_length[7]'
+    ],
+    [
+        'name'        => 'name', 
+        'column_name' => 'fullname',
+        'type'        => 'string',
+        'validate'    => 'required|uppercase|max_length[20]'
+    ],
+    [
+        'name'        => 'bdate',
+        'column_name' => 'birth date',
+        'type'        => 'date',
+        'validate'    => 'required|uppercase|max_length[20]'
+    ],
+    [
+        'name'        => 'status',
+        'column_name' => 'active',
+        'type'        => 'string',
+        'validate'    => 'required|uppercase|max_length[20]'
+    ],
+];
+    </code></pre>
+
+    <h2>Callback Function for Custom Validation</h2>
+    <p>
+      You can define a callback function for custom validation or processing on each row. The callback receives:
+    </p>
+    <ul>
+      <li><code>$row</code>: Associative array of the current row's data.</li>
+      <li><code>$index</code>: Row index (starting from 1).</li>
+    </ul>
+    <p>
+      The callback can return:
+    </p>
+    <ul>
+      <li><code>true</code> — Row is valid and should be processed.</li>
+      <li>
+        An associative array with:
+        <ul>
+          <li><code>'status' => false</code> and <code>'column_errors' => [...]</code> — Row is invalid, with error messages.</li>
+          <li><code>'status' => true</code> and <code>'row' => $modifiedRow</code> — Row is valid, and you want to modify it before further processing.</li>
+          <li><code>'status' => false</code> and <code>'skip' => true</code> — Row should be skipped entirely.</li>
+        </ul>
+      </li>
+    </ul>
+    <pre><code>
+public function custom_validation($row, $index) 
+{
+    $errors = [];
+    if (empty($row['birth date'])) {
+        $errors[] = "Birth Date is required. : (" . $row['birth date'] . ")";
+    }
+    return [
+        'status' => empty($errors),
+        'column_errors' => $errors ?? []
+    ];
+}
+    </code></pre>
+    <div class="note">
+      <strong>Note:</strong> Custom validations via callback are optional. If you do not set a callback, only the built-in column validations will be applied.
+    </div>
+
+    <h2>Progress Callback Feature</h2>
+    <p>
+      The <code>Reader</code> class supports a <strong>progress callback</strong> feature, allowing you to receive updates on the progress of CSV file processing. This is useful for large files (e.g., updating a progress bar).
+    </p>
+    <pre><code>
+$reader->setProgressCallback(function($processed, $total) {
+    if ($total) {
+        echo "Progress: " . round($processed / $total * 100, 2) . "%\n";
+    } else {
+        echo "Rows processed: $processed\n";
+    }
+});
+    </code></pre>
+    <ul>
+      <li>The callback receives <code>$rowsProcessed</code> (int) and <code>$totalRows</code> (int|null).</li>
+      <li>Called every 100 rows by default (customizable).</li>
+      <li>To show progress on your website, save progress to a file or database and fetch it via AJAX.</li>
+    </ul>
+
+    <h2>Exception Handling Example</h2>
+    <p>
+      Custom validation callbacks can throw exceptions. The Reader library will catch these and report them in the results.
+    </p>
+    <pre><code>
+$callback = new class {
+    public function exceptionValidation($row, $rowIndex) {
+        $exceptionMsg = "";
+        $errors = [];
+        try {
+            if($row['email']) {
+                throw new \Exception('Exception error message');
+            }
+        } catch (\Exception $e) {
+            $errors[] = "The row has encountered an internal error. Please check and try again.";
+            $exceptionMsg = $e->getMessage();
+        }
+        return [
+            'status' => empty($errors),
+            'column_errors' => $errors ?? [],
+            'exception' => $exceptionMsg
+        ];
+    }
+};
+
+$reader->setCallback('exceptionValidation', $callback);
+$result = $reader->read($file);
+    </code></pre>
+
+    <h2>Full Example: Using with Custom Validation</h2>
+    <p>
+      Here is a complete example showing how to use the <code>Reader</code> library with a custom validation callback in a <code>CsvProcessor</code> class.
+    </p>
+    <pre><code class="language-php">
+require 'vendor/autoload.php';
+
+use Jletrondo\Csv\Reader;
+
+class CsvProcessor
+{
+    private $columns;
+    private $reader;
+
+    public function __construct()
+    {
+        $this->columns = [
+            [
+                'name'        => 'company', 
+                'column_name' => 'company', 
+                'type'        => 'string', 
+                'validate'    => 'uppercase|max_length[7]'
+            ],
+            [
+                'name'        => 'name', 
+                'column_name' => 'fullname',
+                'type'        => 'string',
+                'validate'    => 'required|uppercase|max_length[20]'
+            ],
+            [
+                'name'        => 'bdate',
+                'column_name' => 'birth date',
+                'type'        => 'date',
+                'validate'    => 'required|uppercase|max_length[20]'
+            ],
+            [
+                'name'        => 'status',
+                'column_name' => 'active',
+                'type'        => 'string',
+                'validate'    => 'required|uppercase|max_length[20]'
+            ],
+        ];
+
+        $this->reader = new Reader([
+            'columns' => $this->columns
+        ]);
+    }
+
+    public function process()
+    {
+        try {
+            $this->reader->setCallback('custom_validation', $this);
+            $result = $this->reader->read(__DIR__ . '/file.csv');
+            print_r($result);
+        } catch (Exception $e) {
+            echo "Error: " . $e->getMessage();
+        }
+    }
+
+    public function custom_validation($row, $index) 
+    {
+        $errors = [];
+
+        if (empty($row['birth date'])) {
+            $errors[] = "Birth Date is required. : (" . $row['birth date'] . ")";
+        }
+
+        return [
+            'status' => empty($errors),
+            'column_errors' => $errors ?? []
+        ];
+    }
+}
+
+// Create an instance of CsvProcessor and process the CSV file
+$csvProcessor = new CsvProcessor();
+$csvProcessor->process();
+    </code></pre>
+
+    <h2>Error Handling</h2>
+    <p>
+      The library tracks errors encountered during reading. If errors occur, they are stored in an array, and an error file can be generated for review.
+    </p>
+    <ul>
+      <li><code>storeErrorRows(array $error_rows, array $header)</code>: Stores rows with errors into a CSV file.</li>
+      <li>Set error file directory and name with <code>setDirectoryPath()</code> and <code>setFileName()</code>.</li>
+    </ul>
+
+    <h2>API Reference</h2>
+    <table>
+      <tr>
+        <th>Method</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td><code>initialize(array $params)</code></td>
+        <td>Initializes the Reader with given parameters.</td>
+      </tr>
+      <tr>
+        <td><code>setDelimiter(string $delimiter)</code></td>
+        <td>Sets the delimiter for CSV.</td>
+      </tr>
+      <tr>
+        <td><code>setEnclosure(string $enclosure)</code></td>
+        <td>Sets the enclosure character for CSV.</td>
+      </tr>
+      <tr>
+        <td><code>setEscape(string $escape)</code></td>
+        <td>Sets the escape character for CSV.</td>
+      </tr>
+      <tr>
+        <td><code>setHasHeader(bool $has_header)</code></td>
+        <td>Sets whether the CSV has a header row.</td>
+      </tr>
+      <tr>
+        <td><code>setColumns(array $columns)</code></td>
+        <td>Sets the required columns for validation.</td>
+      </tr>
+      <tr>
+        <td><code>setDirectoryPath(string $directory_path)</code></td>
+        <td>Sets the directory path for error files.</td>
+      </tr>
+      <tr>
+        <td><code>setFileName(string $file_name)</code></td>
+        <td>Sets the name of the error file.</td>
+      </tr>
+      <tr>
+        <td><code>setErrorCountThreshold(int $error_threshold)</code></td>
+        <td>Sets the error count threshold.</td>
+      </tr>
+      <tr>
+        <td><code>storeErrorRows(array $error_rows, array $header)</code></td>
+        <td>Stores rows with errors into a CSV file.</td>
+      </tr>
+    </table>
+
+    <h2>Testing</h2>
+    <pre><code>
+composer install
+composer test
+# To run a specific test file:
+composer test -- tests/Reader/exceptiontest.php
+    </code></pre>
+
+    <h2>More examples here</h2>
+    <p>
+        <a href="examples.html">More examples</a>
+    </p>
+
+    <h2>License</h2>
+    <p>
+      This library is licensed under the MIT License.
+    </p>
+  </main>
+</body>
+</html>

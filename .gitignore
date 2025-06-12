@@ -1,4 +1,7 @@
 /vendor/
-
-
 *.csv
+*.txt
+
+# Start of Selection
+!tests/test_files/*.csv
+# End of Selection

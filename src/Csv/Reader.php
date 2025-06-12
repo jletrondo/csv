@@ -2,10 +2,13 @@
 
 namespace Jletrondo\Csv;
 
+use Jletrondo\Config\Constants as c;
 use Exception;
+use Error;
 
 class Reader
 {
+
     /**
      * @var callable|null $callback
      * Callback function to process each row after validation.
@@ -25,28 +28,28 @@ class Reader
      * The character used to separate values in the CSV file.
      * Default is a comma (',').
      */
-    private $delimiter = ',';
+    private $delimiter = c::DELIMITER;
 
     /**
      * @var string $enclosure
      * The character used to enclose values in the CSV file.
      * Default is a double quote ('"').
      */
-    private $enclosure = '"';
+    private $enclosure = c::ENCLOSURE;
 
     /**
      * @var string $escape
      * The character used to escape special characters in the CSV file.
      * Default is a backslash ('\\').
      */
-    private $escape = '\\';
+    private $escape = c::ESCAPE;
 
     /**
      * @var bool $has_header
      * Indicates whether the CSV file contains a header row.
      * If true, the first row is treated as the header.
      */
-    private $has_header = true;
+    private $has_header = c::HAS_HEADER;
 
     /**
      * @var int $header_count
@@ -88,7 +91,7 @@ class Reader
      * The maximum number of errors allowed before the CSV reader stops processing further rows.
      * Default is 1000.
      */
-    private static $error_threshold = 1000;
+    private static $error_threshold = c::ERROR_COUNT_THRESHOLD;
 
     /**
      * @var array $results
@@ -124,7 +127,7 @@ class Reader
      *
      * @var bool
      */
-    private static $is_downloadable = false;
+    private static $is_downloadable = c::IS_DOWNLOADABLE;
 
     /**
      * The directory path where the error CSV file (containing invalid rows)
@@ -132,15 +135,27 @@ class Reader
      *
      * @var string
      */
-    private static $directory_path = 'tests/errors/';
+    private static $directory_path = c::DIRECTORY_PATH;
 
     /**
      * The filename to use for the generated CSV file containing rows with errors.
      *
      * @var string
      */
-    private static $file_name = "rows_with_errors.csv";
-    
+    private static $file_name = c::FILE_NAME;
+
+
+    /**
+     * @var int $header_row_index
+     * The row index to be treated as the header. Default is 1 (first row).
+     */
+    private $header_row_index = 1;
+
+    /**
+     * @var int $start_row_index
+     * The row index from which processing will start. Default is 2 (second row).
+     */
+    private $start_row_index = 0;
 
     /**
      * Constructor to initialize the CsvReader with optional parameters.
@@ -149,9 +164,10 @@ class Reader
      */
     public function __construct($params = [])
     {
-        // $this->CI =& get_instance();
-        // $this->CI->load->helper('custom_helper'); // Load your custom helper
         if (!empty($params)) {
+            if (isset($params['header_row_index'])) {
+                $this->header_row_index = $params['header_row_index'];
+            }
             $this->initialize($params);
         }
     }
@@ -170,6 +186,19 @@ class Reader
         }
     }
 
+    public function setHeaderRowIndex(int $index): void
+    {
+        $this->header_row_index = $index; // Set the header row index
+    }
+
+    public function setStartRowIndex(int $index): void
+    {
+        $this->start_row_index = $index;
+        if ($this->header_row_index >= $index) {
+            throw new Error(c::HEADER_ROW_INDEX);
+        }
+    }
+ 
     // Setters for the properties
     public function setDelimiter(string $delimiter): void
     {
@@ -231,6 +260,16 @@ class Reader
         return self::$is_downloadable;
     }
 
+    public function getHeaders(): array
+    {
+        return $this->headers;
+    }
+
+    public function getHeaderCount(): int
+    {
+        return $this->header_count;
+    }
+
     /**
      * @var callable|null $progress_callback
      * Callback function to report progress.
@@ -252,7 +291,7 @@ class Reader
      * @var int $progress_callback_interval
      * Determines how often (in rows) the progress callback is called.
      */
-    private $progress_callback_interval = 100;
+    private $progress_callback_interval = c::PROGRESS_CALLBACK_INTERVAL;
 
     /**
      * Set the interval (in rows) for calling the progress callback.
@@ -338,21 +377,21 @@ class Reader
             // Regular file path
             $this->isRegularFile = true;
             if (!file_exists($input)) {
-                $this->results['error'] = 'File does not exist: ' . $input;
+                $this->results['error'] = c::FILE_DOES_NOT_EXIST . $input;
                 return $this->results;
             }
 
             // Only check for valid CSV file if it's a regular file path
             if (!$this->isFileStream($input) && !$this->isFileUploaded($input)) {
                 if(!$this->isValidCsvFile($input)) {
-                    $this->results['error'] = 'Uploaded file is not a CSV. Please upload a valid CSV file.';
+                    $this->results['error'] = c::FILE_IS_NOT_A_CSV;
                     return $this->results;
                 }
             }
 
             $handle = fopen($input, 'r');
             if ($handle === false) {
-                $this->results['error'] = 'Failed to open file.';
+                $this->results['error'] = c::FILE_OPEN_ERROR;
                 return $this->results;
             }
 
@@ -363,40 +402,7 @@ class Reader
             rewind($handle); // Reset file pointer to beginning
         }
 
-        /* 
-            Removes BOM if present.
-            This is for the library to be compatible with CSV UTF-8.
-            The difference between CSV UTF-8 and plain CSV (especially when saved from Excel) often lies in invisible characters at the beginning of the file — 
-            specifically, the UTF-8 BOM (Byte Order Mark).
-        */
-        // Detect encoding and convert if necessary
-        $firstBytes = fread($handle, 3);
-        if ($firstBytes === "\xEF\xBB\xBF") {
-            // UTF-8 BOM detected
-            fseek($handle, 0); // Reset file pointer
-        } else {
-            // Assume it's a different encoding (e.g., ISO-8859-1) and convert to UTF-8
-            if ($this->isFileStream($input)) {
-                // For streams, read and convert in chunks
-                $tempHandle = fopen('php://temp', 'r+');
-                rewind($handle); // Reset original stream pointer
-                while (!feof($handle)) {
-                    $chunk = fread($handle, 8192); // Read in 8KB chunks
-                    $convertedChunk = mb_convert_encoding($chunk, 'UTF-8', 'ISO-8859-1');
-                    fwrite($tempHandle, $convertedChunk);
-                }
-                fclose($handle);
-                $handle = $tempHandle;
-                rewind($handle);
-            } else {
-                // For regular files, we can read the whole content
-                $content = file_get_contents($input);
-                $content = mb_convert_encoding($content, 'UTF-8', 'ISO-8859-1');
-                $handle = fopen('php://temp', 'r+');
-                fwrite($handle, $content);
-                rewind($handle);
-            }
-        }
+        $handle = $this->handleEncoding($handle, $input);
 
         if (!$this->has_header) {
             return $this->readWithoutHeaders($input);
@@ -410,7 +416,7 @@ class Reader
             if (empty($headerName) || empty($key)) {
                 fclose($handle);
                 $this->results['status'] = false;
-                $this->results['error'] = "Column definition error: Each column must have both a 'column_name' (the CSV header) and a 'name' (the key for the resulting array). Please review your column definitions and ensure these fields are present for every column.";
+                $this->results['error'] = c::COLUMN_DEFINITION_ERROR;
                 return $this->results;
             }
             $columnNameToKey[$headerName] = $key;
@@ -424,9 +430,26 @@ class Reader
             if($errorCount > self::$error_threshold) {
                 $this->results['status'] = true;
                 $this->results['error_count'] = $errorCount;
-                $this->results['error'] = "The uploaded file has too many errors. Please take time to review and try again.";
+                $this->results['error'] = c::ERROR_THRESHOLD;
                 $this->results['total_error_rows'] = $totalErrorRows;
                 return $this->results;
+            }
+
+            if ($rowIndex === $this->header_row_index) {
+                $res = $this->processHeaderRow($row);
+                $header = $this->headers = $res['header'];
+                if (!empty($res['error_msgs'])) {
+                    fclose($handle);
+                    $this->results['status'] = false;
+                    $this->results['error'] = $res['error_msgs'];
+                    return $this->results;
+                }
+                continue; // Skip processing this header row
+            }
+
+            // Skip rows until the start row index
+            if ($this->start_row_index > 0 && $rowIndex < $this->start_row_index) {
+                continue;
             }
 
             // Check for empty rows
@@ -435,59 +458,12 @@ class Reader
                 continue;
             }
 
-            if ($rowIndex === 1 && $this->has_header) {
-                // Remove BOM and trim headers, then filter out empty values
-                $header = array_filter(array_map(function($value) {
-                    // Remove BOM, trim, and strip anything in parentheses (and the parentheses)
-                    $cleaned = trim($this->removeBom($value));
-                    $cleaned = preg_replace('/\s*\(.*?\)\s*/', '', $cleaned);
-                    $cleaned = preg_replace('/\s+/', ' ', $cleaned); // Replace multiple spaces with a single space
-                    return $cleaned;
-                }, $row), function($v) { return $v !== ''; });
-
-                // Get the expected column names and filter out empty values
-                $expectedColumns = array_filter(array_column($this->columns, 'column_name'), function($v) { return $v !== ''; });
-                $missingColumns = array_diff($expectedColumns, $header); // Find missing columns
-                $extraColumns = array_diff($header, $expectedColumns); // Find extra columns
-                $duplicateHeaders = $this->checkForDuplicateHeaders($header);
-
-                $errorMsg = ""; 
-                if (!empty($missingColumns)) {
-                    $errorMsg .= "The uploaded file is missing the following columns:" . custom_list_ul($missingColumns, ['style' => 'color: red;']);
-                }
-                if (!empty($extraColumns)) {
-                    $errorMsg .= "The uploaded file contains columns that are not defined in the system:" . custom_list_ul($extraColumns, ['style' => 'color: red;']);
-                }
-                if (!empty($duplicateHeaders)) {
-                    $errorMsg .= "Duplicate headers found: " . custom_list_ul($duplicateHeaders, ['style' => 'color: red;']);
-                }
-                if (empty($errorMsg) && count($header) !== count($expectedColumns)) {
-                    if (count($this->columns) > count($header)) {
-                        $errorMsg = "The uploaded file does not match the expected column structure. Some headers may be missing. Please review the file and try again.";
-                    } else {
-                        $errorMsg = "The uploaded file does not match the expected column structure. Extra headers may be present. Please review the file and try again.";
-                    }
-                }
-
-                if (!empty($errorMsg)) {
-                    fclose($handle);
-
-                    $this->results['status'] = false;
-                    $this->results['error'] = $errorMsg;
-                    return $this->results;
-                }
-
-                // Count non-empty header fields
-                $this->header_count = count(array_filter($header, fn($value) => $value !== '' && $value !== null));
-                $this->headers = $header;
-                continue; // Skip processing this header row
-            }
-
-            if ($this->has_header && count($row) !== count($header)) {
+            // Check if the CSV has a header and if the current row's column count matches the header's column count
+            if (count($row) !== $this->header_count) {
                 $errorCount++;
                 $totalErrorRows++;
                 $this->results['errors'][] = [
-                    'message' => "Row has incorrect column count (expected " . count($header) . ", got " . count($row) . ").",
+                    'message' => sprintf(c::ROW_COLUMN_COUNT_MISMATCH, count($header), count($row)),
                     'row' => $rowIndex
                 ];
                 $this->results['rows_with_errors'][] = $row;
@@ -500,7 +476,7 @@ class Reader
             }
 
             // Build the assoc_row with precompiled mapping and trim whitespaces
-            $assoc_row = $this->has_header ? array_map('trim', array_combine($header, $row)) : array_map('trim', $row);
+            $assoc_row = array_map('trim', array_combine($header, $row));
 
             // Validate columns
             $validationResult = $this->validateColumns($assoc_row, $rowIndex);
@@ -576,7 +552,7 @@ class Reader
         }
 
         // Final progress callback at end (if not already called) ---
-        if ($this->progress_callback) {
+        if ($this->progress_callback && !$this->isStream) {
             call_user_func($this->progress_callback, $rowIndex, $totalRows);
         }
 
@@ -598,6 +574,45 @@ class Reader
         }
 
         return $this->results; // Return the results of the read operation
+    }
+
+    /* 
+        Removes BOM if present.
+        This is for the library to be compatible with CSV UTF-8.
+        The difference between CSV UTF-8 and plain CSV (especially when saved from Excel) often lies in invisible characters at the beginning of the file — 
+        specifically, the UTF-8 BOM (Byte Order Mark).
+    */
+    private function handleEncoding($handle, $input) {
+
+        // Detect encoding and convert if necessary
+        $firstBytes = fread($handle, 3);
+        if ($firstBytes === "\xEF\xBB\xBF") {
+            // UTF-8 BOM detected
+            fseek($handle, 0); // Reset file pointer
+        } else {
+            // Assume it's a different encoding (e.g., ISO-8859-1) and convert to UTF-8
+            if ($this->isFileStream($input)) {
+                // For streams, read and convert in chunks
+                $tempHandle = fopen('php://temp', 'r+');
+                rewind($handle); // Reset original stream pointer
+                while (!feof($handle)) {
+                    $chunk = fread($handle, 8192); // Read in 8KB chunks
+                    $convertedChunk = mb_convert_encoding($chunk, 'UTF-8', 'ISO-8859-1');
+                    fwrite($tempHandle, $convertedChunk);
+                }
+                fclose($handle);
+                $handle = $tempHandle;
+                rewind($handle);
+            } else {
+                // For regular files, we can read the whole content
+                $content = file_get_contents($input);
+                $content = mb_convert_encoding($content, 'UTF-8', 'ISO-8859-1');
+                $handle = fopen('php://temp', 'r+');
+                fwrite($handle, $content);
+                rewind($handle);
+            }
+        }
+        return $handle; // Return the modified handle
     }
 
     /**
@@ -626,6 +641,61 @@ class Reader
     }
 
     /**
+     * Process the header row of the CSV file.
+     *
+     * @param array $row The current row being processed.
+     * @param resource $handle The file handle for the CSV file.
+     * @param int $rowIndex The index of the current row.
+     * @return void
+     */
+    private function processHeaderRow(array $row): array|null
+    {
+        // Remove BOM and trim headers, then filter out empty values
+        $header = array_filter(array_map(function($value) {
+            // Remove BOM, trim, and strip anything in parentheses (and the parentheses)
+            $cleaned = trim($this->removeBom($value));
+            $cleaned = preg_replace('/\s*\(.*?\)\s*/', '', $cleaned);
+            $cleaned = preg_replace('/\s+/', ' ', $cleaned); // Replace multiple spaces with a single space
+            return $cleaned;
+        }, $row), function($v) { return $v !== ''; });
+
+        // Get the expected column names and filter out empty values
+        $expectedColumns = array_filter(array_column($this->columns, 'column_name'), function($v) { return $v !== ''; });
+        $missingColumns = array_diff($expectedColumns, $header); // Find missing columns
+        $extraColumns = array_diff($header, $expectedColumns); // Find extra columns
+        $duplicateHeaders = $this->checkForDuplicateHeaders($header);
+
+        $errorMsg = ""; 
+        if (!empty($missingColumns)) {
+            $errorMsg .= c::MISSING_COLUMNS . custom_list_ul($missingColumns, ['style' => 'color: red;']);
+        }
+        if (!empty($extraColumns)) {
+            $errorMsg .= c::EXTRA_HEADERS . custom_list_ul($extraColumns, ['style' => 'color: red;']);
+        }
+        if (!empty($duplicateHeaders)) {
+            $errorMsg .= c::DUPLICATE_HEADERS . custom_list_ul($duplicateHeaders, ['style' => 'color: red;']);
+        }
+        if (empty($errorMsg) && count($header) !== count($expectedColumns)) {
+            if (count($this->columns) > count($header)) {
+                $errorMsg = c::MISSING_COLUMNS;
+            } else {
+                $errorMsg = c::EXTRA_COLUMNS;
+            }
+        }
+
+        if (!empty($errorMsg)) {
+            $this->results['status'] = false;
+            $this->results['error'] = $errorMsg;
+            return ['error_msgs' => $errorMsg, 'header' => $header];
+        }
+
+        // Count non-empty header fields
+        $this->header_count = count(array_filter($header, fn($value) => $value !== '' && $value !== null));
+        $this->headers = $header;
+        return ['error_msgs' => $errorMsg, 'header' => $header];
+    }
+
+    /**
      * Validate the columns of the given associative row.
      *
      * @param array $assoc_row The associative array representing the row data.
@@ -641,13 +711,13 @@ class Reader
             $expected_type = $column['type'] ?? 'string'; // Get the expected type
             $value = $assoc_row[$column_name] ?? null;
             $value_exists = isset($assoc_row[$column_name]) && $assoc_row[$column_name] !== ''; // Check if the value exists
-            $encoding_error_msg = "Unknown or invalid character or possible encoding error found in column";
+            $encoding_error_msg = sprintf(c::COLUMN_ENCODING_ERROR, $column_name);
             $validation_rules = $this->parseValidationRules($column['validate'] ?? '');
             
             // Unicode replacement character, disallowed symbols, and mojibake patterns
-            $pattern = '/[\x{FFFD}□▯▢]/u';
+            $pattern = '/[\x{FFFD}□▯▢?�]/u';
             if ($value_exists && preg_match($pattern, $value) || preg_match($this->mojibake_pattern, $value)) {
-                $errors[] = "$encoding_error_msg '{$column_name}'.";
+                $errors[] = $encoding_error_msg;
             }
 
             // String manipulations
@@ -699,7 +769,7 @@ class Reader
                         $value = date('m/d/Y', strtotime($value));
                         $assoc_row[$column_name] = $value;
                     } else {
-                        $errors[] = "Invalid date format in column '{$column_name}'. Please use one of the following formats: m/d/Y, m-d-Y, Y/m/d, or Y-m-d.";
+                        $errors[] =  sprintf(c::COLUMN_DATE_FORMAT_ERROR, $column_name);
                     }
                 } else {
                     $error = $this->validateType($value, $expected_type, $column_name);
@@ -730,7 +800,7 @@ class Reader
             if (isset($column['allowed_values']) && is_array($column['allowed_values'])) {
                 if (!in_array($value, $column['allowed_values'], true)) {
                     $allowed = implode("', '", $column['allowed_values']);
-                    $errors[] = "Invalid value in column '{$column_name}': expected one of ['{$allowed}'], found '{$value}'.";
+                    $errors[] = sprintf(c::COLUMN_INVALID_VALUES, $column_name, $allowed, $value);
                 }
             }
         }
@@ -791,67 +861,6 @@ class Reader
         $this->unique_values[$column_name][$value] = $rowIndex;
         return null;
     }
-
-    /**
-     * Check for duplicates in unique columns.
-     *
-     * @param mixed $value The value to check for duplicates.
-     * @param array $column The column definition containing the unique constraint.
-     * @param int|null $current_row_number The current row number being processed.
-     * @return array An array of error messages for duplicates found.
-     */
-    // private function checkForDuplicatesInUniqueColumns(mixed $value, array $column, ?int $current_row_number = null): array 
-    // {
-    //     $errors = []; // Initialize errors array
-
-    //     // Check if the column has the 'unique' key set to true
-    //     if (isset($column['unique']) && $column['unique'] === true) {
-    //         $unique_column_name = $column['column_name']; // Get the unique column name
-
-    //         // Initialize if not set
-    //         if (!isset($this->unique_values[$unique_column_name])) {
-    //             $this->unique_values[$unique_column_name] = []; // Initialize unique values array
-    //         }
-
-    //         // Check if the value is already tracked
-    //         if (isset($this->unique_values[$unique_column_name][$value])) {
-    //             $first_row = $this->unique_values[$unique_column_name][$value]; // Get the first row where the value was found
-    //             $errors[] = "Duplicate found in column '{$unique_column_name}': {$value} (same with row {$first_row})"; // Log duplicate error
-    //         } else {
-    //             // If no duplicate, track this value and its current row number
-    //             $this->unique_values[$unique_column_name][$value] = $current_row_number; // Track the current row number
-    //         }
-    //     }
-
-    //     return $errors; // Return any duplicate errors found
-    // }
-
-    /**
-     * Validate the length of a value against minimum and maximum constraints.
-     *
-     * @param mixed $value The value to validate.
-     * @param string $column_name The name of the column being validated.
-     * @param int|null $min_length The minimum length constraint.
-     * @param int|null $max_length The maximum length constraint.
-     * @return array An array of error messages for length validation.
-     */
-    // private function validateLength(mixed $value, string $column_name, ?int $min_length = null, ?int $max_length = null) {
-    //     $errors = []; // Initialize errors array
-
-    //     if (!is_null($value) && $value !== '') {
-    //         $length = strlen((string)$value); // Get the length of the value
-
-    //         if (!is_null($min_length) && $length < $min_length) {
-    //             $errors[] = "The value in column '{$column_name}' is too short: Expected minimum length of {$min_length}, got {$length}"; // Log error for short value
-    //         }
-
-    //         if (!is_null($max_length) && $length > $max_length) {
-    //             $errors[] = "The value in column '{$column_name}' is too long: Expected maximum length of {$max_length}, got {$length}"; // Log error for long value
-    //         }
-    //     }
-
-    //     return $errors; // Return any length validation errors found
-    // }
 
     /**
      * Store rows with errors into a CSV file.
